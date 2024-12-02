@@ -17,43 +17,17 @@ if __name__ == "__main__":
         "Content-Type": "application/json"
     }
     prompt = """
-            Describe the following time series in 10 categories you choose yourself. 
+            Describe the following time series in the categories Volatility, Trend, Stability, Pattern, Seasonality, Cycles, Autocorrelation, Predicatbility, Extremes and Anomaly. 
             Every category should be describe in one word.
-            Don't use Frequency, Units and Type as categories. 
             Describe also how the time series values develop and also give value ranges in percentages not totals.
             Output a json format.
     """
 
     example = """
-    The json keys on the json must and only can be "time_series_description", "development" and"value_ranges".
+    Use this JSON schema:    
     
-    like in this example:
-    
-    {
-      "time_series_description": {
-        "Volatility": "Low",
-        "Trend": "Downward",
-        "Stability": "Unstable",
-        "Pattern": "Stepwise",
-        "Seasonality": "None",
-        "Cycles": "None",
-        "Autocorrelation": "High",
-        "Predictability": "High",
-        "Extremes": "Present",
-        "Anomaly": "Present"
-      },
-      "development": "The time series shows a generally downward trend with several distinct steps or plateaus of constant values.  It starts with a relatively high value, then experiences a series of stepwise decreases, with each step lasting for a considerable period.",
-      "value_ranges": {
-        "100-112%": "Initial phase",
-        "90-100%": "Second phase",
-        "75-90%": "Third phase",
-        "50-75%": "Fourth phase",
-        "60-70%": "Fifth phase"
-      }
-    }
-    
-    No other keys or structure is allowed.
-    And here is the time series you should describe:
+    Recipe = {'Volatility': str,'Trend': str, 'Stability': str, 'Pattern': str, 'Seasonality': str, 'Cycles': str, 'Autocorrelation': str,  'Predictability': str,  'Extremes': str, 'Anomaly': str,   'development': list[str],   'value_ranges': list[str]}
+    Return: list[Recipe]    
     """
     folder_path = "/Users/moritzschneider/PycharmProjects/keepa/best_product/full_ts"
     # Iterate over all files in the folder
@@ -111,15 +85,6 @@ if __name__ == "__main__":
 
                 # Parse the response JSON
                 json_string = response.json()['candidates'][0]['content']['parts'][0]['text']
-                json_string = json_string.replace("```json", "")
-                json_string = json_string.replace("description", "time_series_description")
-                json_string = json_string.replace("time_series_descriptions", "time_series_description")
-                json_string = json_string.replace("ValueRanges", "value_ranges")
-                json_string = json_string.replace("valueRanges", "value_ranges")
-                json_string = json_string.replace("value_range", "value_ranges")
-                json_string = json_string.replace("value_rangess", "value_ranges")
-                json_string = json_string.replace("```", "")
-
                 #print(json_string)
 
                 data = json.loads(json_string)
