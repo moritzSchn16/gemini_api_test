@@ -5,6 +5,7 @@ import requests
 import json
 import pandas as pd
 from io import StringIO
+import re
 
 if __name__ == "__main__":
     initial = True
@@ -19,95 +20,129 @@ if __name__ == "__main__":
 
     prompt = """Describe the following time series in the categories Volatility, Trend, Stability, Pattern, Seasonality, Cycles, Autocorrelation, Predicatbility, Extremes and Anomaly. 
             Every category should be describe in one word.
-            Describe also how the time series values develop and also give value ranges in percentages not totals.
+            Describe also how the time series values develop in three sentences and also give value ranges over time in percentages not totals.
+            Do not use a comma.
     """
 
     example = """
     Use this JSON schema:    
     
-    values = {'Volatility': str,'Trend': str, 'Stability': str, 'Pattern': str, 'Seasonality': str, 'Cycles': str, 'Autocorrelation': str,  'Predictability': str,  'Extremes': str, 'Anomaly': str,   'development': list[str],   'value_ranges': list[str]}
+    values = {'File_name':str, 'Volatility': str,'Trend': str, 'Stability': str, 'Pattern': str, 'Seasonality': str, 'Cycles': str, 'Autocorrelation': str,  'Predictability': str,  'Extremes': str, 'Anomaly': str,   'development': str,   'value_ranges': str}
     Return: values
     
-        
+    Only return the Return.    
     """
     folder_path = "/Users/moritzschneider/PycharmProjects/keepa/best_product/full_ts"
     # Iterate over all files in the folder
+    dfs = []
     for file_name in os.listdir(folder_path):
-        # Construct full file path
-        file_path = os.path.join(folder_path, file_name)
+        try:
 
-        # Check if the file is a CSV
-        if file_name.endswith('.csv'):
-            print(f"Processing file: {file_name}")
+            # Construct full file path
+            file_path = os.path.join(folder_path, file_name)
 
-            # Load the CSV file into a DataFrame
-            try:
-                df = pd.read_csv(file_path)
+            # Check if the file is a CSV
+            if file_name.endswith('.csv'):
+                print(f"Processing file: {file_name}")
 
-                selected_df = df[['date', 'price']]
-
-                # Convert the DataFrame to a string using StringIO
-                output_string = StringIO()
-                selected_df.to_string(output_string, index=False)
-                string_df = str(selected_df)
-                print(str(string_df))
-            except Exception as e:
-                print(f"Error reading {file_name}: {e}")
-
-
-        timeseries = f"""
-            {string_df}
-      
-        """
-
-        # Define the payload
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": f"{prompt}{example}{timeseries}"}
-                    ]
-                }
-            ]
-        }
-
-        print(payload)
-
-        max_attempts = 5
-        attempts = 0
-
-        while attempts < max_attempts:
-            try:
-                # Make the POST request
-                response = requests.post(url, headers=headers, json=payload)
-
-                # Check the response status
-                if response.status_code == 200:
-                    response.json()['candidates'][0]['content']['parts'][0]['text']
-                else:
-                    print("Error:", response.status_code, response)
-
-                # Parse the response JSON
-                json_string = response.json()['candidates'][0]['content']['parts'][0]['text']
-                print(json_string)
-
-                # DataFrame erstellen
-                df = pd.DataFrame([json_string])
-
-                # Tabelle anhängen (z. B. an eine existierende CSV-Datei)
-                csv_file = 'table_new.csv'
-
+                # Load the CSV file into a DataFrame
                 try:
-                    # Datei existiert bereits, neue Daten anhängen
-                    existing_df = pd.read_csv(csv_file)
-                    combined_df = pd.concat([existing_df, df], ignore_index=True)
-                except FileNotFoundError:
-                    # Datei existiert noch nicht, nur neuen DataFrame speichern
-                    combined_df = df
+                    df = pd.read_csv(file_path)
 
-                # Speichern der Tabelle
-                combined_df.to_csv(csv_file, index=False)
+                    selected_df = df[['date', 'price']]
 
-                print("JSON-Daten erfolgreich in die Tabelle eingefügt!")
-            except:
-                print('fail')
+                    # Convert the DataFrame to a string using StringIO
+                    output_string = StringIO()
+                    selected_df.to_string(output_string, index=False)
+                    string_df = str(selected_df)
+                    print(str(string_df))
+                except Exception as e:
+                    print(f"Error reading {file_name}: {e}")
+
+
+            timeseries = f"""
+                {string_df}
+          
+            """
+
+            # Define the payload
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": f"{prompt}{example}{timeseries}The File_name is: {file_name}"}
+                        ]
+                    }
+                ]
+            }
+
+
+
+            # Make the POST request
+            response = requests.post(url, headers=headers, json=payload)
+
+            # Check the response status
+            if response.status_code == 200:
+                response.json()['candidates'][0]['content']['parts'][0]
+
+            else:
+                print("Error:", response.status_code, response)
+
+            print(response.json()['candidates'][0]['content']['parts'][0])
+
+
+
+            # Parse the response JSON
+            json_string = response.json()['candidates'][0]['content']['parts'][0]
+
+            cleaned_text = re.sub(r'json', '', str(json_string))
+            cleaned_text = re.sub(r'\\n', '', str(cleaned_text))
+            cleaned_text = re.sub(r'\'text\'\:', '', str(cleaned_text))
+            cleaned_text = re.sub(r'[^a-zA-Z0-9 \%\-,\[\]\'\-%:\s\\\']', '', str(cleaned_text))
+
+
+            # Input-String
+            #input_string = 'Volatility:Low,Trend:Downward,Stability:Unstable,Pattern:None,Seasonality:None,Cycles:None,Autocorrelation:High,Predictability:Low,Extremes:Mild,Anomaly:None,development:[Initialhighvalues,Gradualdecline],valueranges:[111-112%,61-62%]'
+            input_string = cleaned_text
+
+
+            def parse_input(input_string):
+                    input_dict = {}
+
+                    # Splitte den Input-String in Schlüssel-Wert-Paare
+                    for key_value in input_string.split(','):
+                        if ':' in key_value:
+                            key, value = key_value.split(':', 1)
+
+                            # Liste behandeln
+                            if value.startswith('[') and value.endswith(']'):
+                                value = value[1:-1].split(',')
+
+                            input_dict[key] = value
+
+                    return input_dict
+
+            parsed_data = parse_input(input_string)  # Wandelt den String in ein Dictionary um
+            df = pd.DataFrame([parsed_data])  # Erzeugt einen DataFrame aus dem Dictionary
+            dfs.append(df)
+
+            final_df = pd.concat(dfs, ignore_index=True)
+
+            # Tabelle anhängen (z. B. an eine existierende CSV-Datei)
+            csv_file = 'table_new.csv'
+
+            try:
+                # Datei existiert bereits, neue Daten anhängen
+                existing_df = pd.read_csv(csv_file)
+                combined_df = pd.concat([existing_df, final_df])
+            except FileNotFoundError:
+                # Datei existiert noch nicht, nur neuen DataFrame speichern
+                combined_df = final_df
+
+            # Speichern der Tabelle
+            combined_df.to_csv(csv_file, index=False)
+            print(combined_df)
+            print("JSON-Daten erfolgreich in die Tabelle eingefügt!")
+
+        except:
+            print('Error',file_name)
