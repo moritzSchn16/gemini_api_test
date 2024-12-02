@@ -16,18 +16,19 @@ if __name__ == "__main__":
     headers = {
         "Content-Type": "application/json"
     }
-    prompt = """
-            Describe the following time series in the categories Volatility, Trend, Stability, Pattern, Seasonality, Cycles, Autocorrelation, Predicatbility, Extremes and Anomaly. 
+
+    prompt = """Describe the following time series in the categories Volatility, Trend, Stability, Pattern, Seasonality, Cycles, Autocorrelation, Predicatbility, Extremes and Anomaly. 
             Every category should be describe in one word.
             Describe also how the time series values develop and also give value ranges in percentages not totals.
-            Output a json format.
     """
 
     example = """
     Use this JSON schema:    
     
-    Recipe = {'Volatility': str,'Trend': str, 'Stability': str, 'Pattern': str, 'Seasonality': str, 'Cycles': str, 'Autocorrelation': str,  'Predictability': str,  'Extremes': str, 'Anomaly': str,   'development': list[str],   'value_ranges': list[str]}
-    Return: list[Recipe]    
+    values = {'Volatility': str,'Trend': str, 'Stability': str, 'Pattern': str, 'Seasonality': str, 'Cycles': str, 'Autocorrelation': str,  'Predictability': str,  'Extremes': str, 'Anomaly': str,   'development': list[str],   'value_ranges': list[str]}
+    Return: values
+    
+        
     """
     folder_path = "/Users/moritzschneider/PycharmProjects/keepa/best_product/full_ts"
     # Iterate over all files in the folder
@@ -58,16 +59,19 @@ if __name__ == "__main__":
             {string_df}
       
         """
+
         # Define the payload
         payload = {
             "contents": [
                 {
                     "parts": [
-                        {"text": f"{prompt}{timeseries}"}
+                        {"text": f"{prompt}{example}{timeseries}"}
                     ]
                 }
             ]
         }
+
+        print(payload)
 
         max_attempts = 5
         attempts = 0
@@ -85,52 +89,25 @@ if __name__ == "__main__":
 
                 # Parse the response JSON
                 json_string = response.json()['candidates'][0]['content']['parts'][0]['text']
-                #print(json_string)
+                print(json_string)
 
-                data = json.loads(json_string)
+                # DataFrame erstellen
+                df = pd.DataFrame([json_string])
 
-                # Add file name to the data
-                data['file_name'] = file_name
-                print(data)
-                # Convert `value_ranges` to a DataFrame
-                value_ranges_data = [data['value_ranges']]
+                # Tabelle anhängen (z. B. an eine existierende CSV-Datei)
+                csv_file = 'table_new.csv'
 
-                print(data)
+                try:
+                    # Datei existiert bereits, neue Daten anhängen
+                    existing_df = pd.read_csv(csv_file)
+                    combined_df = pd.concat([existing_df, df], ignore_index=True)
+                except FileNotFoundError:
+                    # Datei existiert noch nicht, nur neuen DataFrame speichern
+                    combined_df = df
 
-                if initial:
-                    # Convert `time_series_description` to a DataFrame
-                    ts_description_df = pd.DataFrame([data])
+                # Speichern der Tabelle
+                combined_df.to_csv(csv_file, index=False)
 
-                    # Create value_ranges DataFrame
-                    value_ranges_df = pd.DataFrame(value_ranges_data)
-
-                    initial = False
-                else:
-                    # Append new time_series_description and value_ranges data to the DataFrames
-                    ts_description_df = pd.concat([ts_description_df, pd.DataFrame([data])],
-                                                  ignore_index=True)
-
-                    # Append value ranges data
-                    value_ranges_df = pd.concat([value_ranges_df, pd.DataFrame(value_ranges_data)], ignore_index=True)
-
-                # Display the DataFrames
-                print("Time Series Description DataFrame:")
-                print(ts_description_df, end="\n\n")
-
-                print("Value Ranges DataFrame:")
-                print(value_ranges_df)
-
-                # Save the DataFrames to CSV files
-                ts_description_df.to_csv('ts_description_df.csv', index=False)
-                value_ranges_df.to_csv('value_ranges_df.csv', index=False)
-
-                break  # Break if code executes successfully
-
-            except Exception as e:
-                attempts += 1
-                print(f"Attempt {attempts} failed: {e}")
-                if attempts == max_attempts:
-                    print("Max attempts reached. Code failed.")
-
+                print("JSON-Daten erfolgreich in die Tabelle eingefügt!")
 
 
