@@ -109,5 +109,5 @@ if __name__ == "__main__":
                 combined_df.to_csv(csv_file, index=False)
 
                 print("JSON-Daten erfolgreich in die Tabelle eingefügt!")
-
-
+            except:
+                print('fail')
