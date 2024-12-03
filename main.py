@@ -55,7 +55,6 @@ if __name__ == "__main__":
                     output_string = StringIO()
                     selected_df.to_string(output_string, index=False)
                     string_df = str(selected_df)
-                    print(str(string_df))
                 except Exception as e:
                     print(f"Error reading {file_name}: {e}")
 
@@ -77,7 +76,6 @@ if __name__ == "__main__":
             }
 
 
-
             # Make the POST request
             response = requests.post(url, headers=headers, json=payload)
 
@@ -87,10 +85,6 @@ if __name__ == "__main__":
 
             else:
                 print("Error:", response.status_code, response)
-
-            print(response.json()['candidates'][0]['content']['parts'][0])
-
-
 
             # Parse the response JSON
             json_string = response.json()['candidates'][0]['content']['parts'][0]
@@ -140,7 +134,9 @@ if __name__ == "__main__":
                 combined_df = final_df
 
             # Speichern der Tabelle
+            combined_df = combined_df.drop_duplicates()
             combined_df.to_csv(csv_file, index=False)
+
             print(combined_df)
             print("JSON-Daten erfolgreich in die Tabelle eingefügt!")
 
