@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     prompt = """Describe the following time series in the categories Volatility, Trend, Stability, Pattern, Seasonality, Cycles, Autocorrelation, Predicatbility, Extremes and Anomaly. 
             Every category should be describe in one word.
-            Describe also how the time series values develop in three sentences and also give value ranges over time in percentages not totals.
+            Describe also how the time series values develop in three sentences and also give value changes over time in rounded percentages not totals like 100%-85%-95%-60%-110%.
             Do not use a comma.
     """
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
             final_df = pd.concat(dfs, ignore_index=True)
 
             # Tabelle anhängen (z. B. an eine existierende CSV-Datei)
-            csv_file = 'table_new.csv'
+            csv_file = 'files/table_new_valueranges.csv'
 
             try:
                 # Datei existiert bereits, neue Daten anhängen

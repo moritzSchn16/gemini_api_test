@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 
-df = pd.read_csv("table_new.csv")
+df = pd.read_csv("files/table_new.csv")
 df = df.drop(df.index[-1])
 
 def clean_column_names(col_name):
